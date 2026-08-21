@@ -7,15 +7,21 @@ import { saveConfig } from "../config/store.js"
 import { defaultConfig } from "../config/schema.js"
 
 let home: string
+let priorApiKey: string | undefined
 
 beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), "miniclaw-gw-"))
   process.env.MINICLAW_HOME = home
+  // start() builds a real provider, which requires the key to be present (never called here).
+  priorApiKey = process.env.OPENAI_API_KEY
+  process.env.OPENAI_API_KEY = "test-key"
   saveConfig(defaultConfig())
 })
 
 afterEach(() => {
   delete process.env.MINICLAW_HOME
+  if (priorApiKey === undefined) delete process.env.OPENAI_API_KEY
+  else process.env.OPENAI_API_KEY = priorApiKey
   rmSync(home, { recursive: true, force: true })
 })
 

@@ -23,7 +23,7 @@ export interface OutboundReply {
 export type InboundHandler = (msg: InboundMessage) => void
 
 export interface Channel {
-  readonlyid: string
+  readonly id: string
   /** Register the handler the transport calls for each inbound message. */
   onInbound(handler: InboundHandler): void
   /** Begin receiving (open sockets, start readers, etc.). */

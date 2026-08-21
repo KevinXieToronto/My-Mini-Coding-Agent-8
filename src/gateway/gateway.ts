@@ -17,6 +17,8 @@ import type { Channel } from "../channels/contract.js"
 import { CliChannel } from "../channels/cli-channel.js"
 import { type ClaimedEvent, IngressQueue } from "../channels/ingress-queue.js"
 import { IngressWorker } from "./worker.js"
+import { createProvider } from "../providers/factory.js"
+import { AgentRunner } from "../agent/runner.js"
 
 export interface GatewayContext {
   config: Config
@@ -60,9 +62,19 @@ export class Gateway {
       })
     }
 
-    // The echo reply. Tutorial 07 replaces this with the agent runner.
-    const replyFor = async (event: ClaimedEvent): Promise<string> =>
-      `you said: ${event.text}`
+    // Build the provider (throws with a clear message if the API key is missing).
+    const provider = createProvider(config)
+    providers.register({ id: provider.id })
+
+    const runner = new AgentRunner(db.kysely, provider, config)
+
+    // The reply is now a real, streamed model completion.
+    const replyFor = async (
+      event: ClaimedEvent,
+      sessionId: string,
+    ): Promise<string> => {
+      return runner.runTurn({ sessionId, userText: event.text })
+    }
 
     this.worker = new IngressWorker({
       db: db.kysely,

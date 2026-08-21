@@ -7,5 +7,10 @@
 import type { Plugin } from "../plugin-sdk.js"
 import cliChannel from "../../extensions/cli-channel/plugin.js"
 import openaiProvider from "../../extensions/openai-provider/plugin.js"
+import telegramChannel from "../../extensions/telegram-channel/plugin.js"
 
-export const bundledPlugins: readonly Plugin[] = [cliChannel, openaiProvider]
+export const bundledPlugins: readonly Plugin[] = [
+  cliChannel,
+  openaiProvider,
+  telegramChannel,
+]

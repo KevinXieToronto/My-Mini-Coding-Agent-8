@@ -2,7 +2,9 @@
  * Builds the PluginApi injected into each plugin, collecting registrations as they arrive.
  */
 import type {
+  BeforeReplyHook,
   ChannelRegistration,
+  HookRegistration,
   PluginApi,
   ProviderRegistration,
 } from "../plugin-sdk.js"
@@ -10,10 +12,12 @@ import type {
 export interface LoadedRegistrations {
   channels: Map<string, ChannelRegistration>
   providers: Map<string, ProviderRegistration>
+  /** Hooks run in plugin-load order, each fed the previous one's output. */
+  beforeReply: BeforeReplyHook[]
 }
 
 export function createRegistrations(): LoadedRegistrations {
-  return { channels: new Map(), providers: new Map() }
+  return { channels: new Map(), providers: new Map(), beforeReply: [] }
 }
 
 export function buildApi(
@@ -36,6 +40,9 @@ export function buildApi(
         )
       }
       into.providers.set(reg.id, reg)
+    },
+    registerHook(reg: HookRegistration): void {
+      if (reg.event === "beforeReply") into.beforeReply.push(reg.handler)
     },
   }
 }

@@ -33,13 +33,34 @@ export interface ProviderRegistration {
   create(config: Config): Provider
 }
 
+/** Context passed to a beforeReply hook. */
+export interface BeforeReplyContext {
+  sessionId: string
+  channelId: string
+  conversationId: string
+  userText: string
+  replyText: string
+}
+
+/** A beforeReply hook returns the (possibly transformed) reply text. */
+export type BeforeReplyHook = (
+  ctx: BeforeReplyContext,
+) => string | Promise<string>
+
+/** A hook a plugin registers. One event today; the union is the extension point. */
+export interface HookRegistration {
+  event: "beforeReply"
+  handler: BeforeReplyHook
+}
+
 /** The API injected into every plugin's register(). It is the plugin's only capability. */
 export interface PluginApi {
   registerChannel(reg: ChannelRegistration): void
   registerProvider(reg: ProviderRegistration): void
+  registerHook(reg: HookRegistration): void
 }
 
-export type PluginKind = "channel" | "provider"
+export type PluginKind = "channel" | "provider" | "hook"
 
 /** A plugin manifest. */
 export interface Plugin {

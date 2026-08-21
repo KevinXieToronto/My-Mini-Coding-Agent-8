@@ -48,8 +48,11 @@ export class Gateway {
     this.context = { config, db, channels, providers }
 
     // Load plugins -> registrations.
-    const { channels: channelRegs, providers: providerRegs } =
-      loadPlugins(bundledPlugins)
+    const {
+      channels: channelRegs,
+      providers: providerRegs,
+      beforeReply,
+    } = loadPlugins(bundledPlugins)
 
     const queue = new IngressQueue(db.kysely)
     const channelsById = new Map<string, Channel>()
@@ -88,12 +91,22 @@ export class Gateway {
 
     const runner = new AgentRunner(db.kysely, provider, config)
 
-    // The reply is now a real, streamed model completion.
+    // A real, streamed model completion, then the beforeReply hooks fold over it.
     const replyFor = async (
       event: ClaimedEvent,
       sessionId: string,
     ): Promise<string> => {
-      return runner.runTurn({ sessionId, userText: event.text })
+      let text = await runner.runTurn({ sessionId, userText: event.text })
+      for (const hook of beforeReply) {
+        text = await hook({
+          sessionId,
+          channelId: event.channelId,
+          conversationId: event.conversationId,
+          userText: event.text,
+          replyText: text,
+        })
+      }
+      return text
     }
 
     this.worker = new IngressWorker({

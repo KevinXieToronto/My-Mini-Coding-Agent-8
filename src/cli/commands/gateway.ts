@@ -1,5 +1,7 @@
 import type { Command } from "commander"
 import type { CliCommand } from "../command.js"
+import { ConfigError } from "../../config/errors.js"
+import { runGateway } from "../../gateway/run.js"
 
 export const gatewayCommand: CliCommand = {
   name: "gateway",
@@ -8,10 +10,17 @@ export const gatewayCommand: CliCommand = {
     program
       .command("gateway")
       .description("Start the MiniClaw gateway (long-lived daemon)")
-      .action(() => {
-        console.log(
-          "gateway: not implemented yet (Tutorial 05 boots the daemon).",
-        )
+      .action(async () => {
+        try {
+          await runGateway()
+        } catch (err) {
+          if (err instanceof ConfigError) {
+            console.error(err.message)
+            process.exitCode = 1
+            return
+          }
+          throw err
+        }
       })
   },
 }

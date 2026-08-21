@@ -34,7 +34,11 @@ export function openStateDb(): StateDb {
     kysely,
     raw,
     close(): void {
-      // Destroying Kysely closes the underlying DatabaseSync via the dialect.
+      // Kysely.destroy() is async, so it cannot be awaited from a sync close().
+      // Close the handle here so the file is released before close() returns
+      // (Windows refuses to unlink an open SQLite file), then let Kysely tear
+      // down its driver; its destroy() tolerates an already-closed handle.
+      if (raw.isOpen) raw.close()
       void kysely.destroy()
     },
   }

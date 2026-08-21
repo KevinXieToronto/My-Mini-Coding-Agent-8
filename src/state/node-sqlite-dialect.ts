@@ -60,7 +60,8 @@ class NodeSqliteDriver implements Driver {
   }
   async releaseConnection(): Promise<void> {}
   async destroy(): Promise<void> {
-    this.db.close()
+    // StateDb.close() may already have closed the handle; double-close throws.
+    if (this.db.isOpen) this.db.close()
   }
 }
 

@@ -1,12 +1,18 @@
 /**
- * A local CLI channel: stdin -> inbound events, replies -> stdout.
+ * The CLI channel, as a plugin.
  *
  * The whole conversation is a single stdin session, so conversationId is constant.
  */
 import { createInterface, type Interface } from "node:readline"
-import type { Channel, InboundHandler, OutboundReply } from "./contract.js"
+import type {
+  Channel,
+  InboundHandler,
+  OutboundReply,
+  Plugin,
+  PluginApi,
+} from "../../src/plugin-sdk.js"
 
-export class CliChannel implements Channel {
+class CliChannel implements Channel {
   readonly id = "cli"
   private handler: InboundHandler | null = null
   private rl: Interface | null = null
@@ -48,3 +54,13 @@ export class CliChannel implements Channel {
     this.rl?.prompt()
   }
 }
+
+const plugin: Plugin = {
+  id: "cli-channel",
+  kind: "channel",
+  register(api: PluginApi): void {
+    api.registerChannel({ id: "cli", create: () => new CliChannel() })
+  },
+}
+
+export default plugin

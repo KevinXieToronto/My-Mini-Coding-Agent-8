@@ -14,11 +14,11 @@ import {
   Registry,
 } from "./registry.js"
 import type { Channel } from "../channels/contract.js"
-import { CliChannel } from "../channels/cli-channel.js"
 import { type ClaimedEvent, IngressQueue } from "../channels/ingress-queue.js"
 import { IngressWorker } from "./worker.js"
-import { createProvider } from "../providers/factory.js"
 import { AgentRunner } from "../agent/runner.js"
+import { loadPlugins } from "../plugins/loader.js"
+import { bundledPlugins } from "../plugins/bundled.js"
 
 export interface GatewayContext {
   config: Config
@@ -47,23 +47,43 @@ export class Gateway {
     const providers = new Registry<ProviderRuntime>()
     this.context = { config, db, channels, providers }
 
+    // Load plugins -> registrations.
+    const { channels: channelRegs, providers: providerRegs } =
+      loadPlugins(bundledPlugins)
+
     const queue = new IngressQueue(db.kysely)
     const channelsById = new Map<string, Channel>()
 
-    // Build the enabled channels. For now only the CLI channel exists.
-    if (config.channels.cli?.enabled) {
-      const cli = new CliChannel()
-      this.activeChannels.push(cli)
-      channelsById.set(cli.id, cli)
-      channels.register(cli)
+    // Build every enabled channel that a plugin registered.
+    for (const [id, cfg] of Object.entries(config.channels)) {
+      if (!cfg.enabled) continue
+      const reg = channelRegs.get(id)
+      if (!reg) {
+        console.warn(`No plugin provides channel "${id}"; skipping.`)
+        continue
+      }
+      const channel = reg.create(config)
+      this.activeChannels.push(channel)
+      channelsById.set(channel.id, channel)
       // Persist every inbound message into the durable queue.
-      cli.onInbound((msg) => {
+      channel.onInbound((msg) => {
         void queue.enqueue(msg)
+      })
+      channels.register({
+        id: channel.id,
+        start: () => channel.start(),
+        stop: () => channel.stop(),
       })
     }
 
-    // Build the provider (throws with a clear message if the API key is missing).
-    const provider = createProvider(config)
+    // Build the configured provider.
+    const providerReg = providerRegs.get(config.provider.id)
+    if (!providerReg) {
+      throw new ConfigError(
+        `No plugin provides provider "${config.provider.id}".`,
+      )
+    }
+    const provider = providerReg.create(config)
     providers.register({ id: provider.id })
 
     const runner = new AgentRunner(db.kysely, provider, config)

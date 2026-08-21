@@ -2,6 +2,7 @@ import type { CliCommand } from "./command.js"
 import { dbInfoCommand } from "./commands/db-info.js"
 import { gatewayCommand } from "./commands/gateway.js"
 import { onboardCommand } from "./commands/onboard.js"
+import { pluginsCommand } from "./commands/plugins.js"
 import { statusCommand } from "./commands/status.js"
 
 export const commandCatalog: readonly CliCommand[] = [
@@ -9,4 +10,5 @@ export const commandCatalog: readonly CliCommand[] = [
   gatewayCommand,
   statusCommand,
   dbInfoCommand,
+  pluginsCommand,
 ]

@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "commander": "^15.0.0",
+    "kysely": "^0.29.5",
     "zod": "^4.4.3"
   }
 }
